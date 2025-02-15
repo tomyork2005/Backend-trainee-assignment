@@ -1,12 +1,12 @@
-package domain
+package service
 
 import "context"
 
 type Service struct {
 }
 
-func NewShopService() Service {
-	return Service{}
+func NewShopService() *Service {
+	return &Service{}
 }
 
 func (s *Service) GetInfo(ctx context.Context, id string) (string, error) {

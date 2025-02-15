@@ -1,15 +1,32 @@
 package auth
 
-import "time"
+import (
+	"Backend-trainee-assignment/internal/model"
+	"context"
+	"time"
+)
 
+const (
+	jwtUserID = "userID"
+	jwtExp    = "exp"
+)
+
+type storage interface {
+	GetUserByUsername(ctx context.Context, username string) (*model.User, error)
+	CreateUser(ctx context.Context, username, password string) (*model.User, error)
+}
 type authService struct {
-	TokenTTL   time.Duration
-	SigningKey string
+	tokenTTL   time.Duration
+	signingKey string
+
+	storage storage
 }
 
-func NewAuthService(tokenTTL time.Duration, signingKey string) *authService {
+func NewAuthService(tokenTTL time.Duration, signingKey string, db storage) *authService {
 	return &authService{
-		TokenTTL:   tokenTTL,
-		SigningKey: signingKey,
+		tokenTTL:   tokenTTL,
+		signingKey: signingKey,
+
+		storage: db,
 	}
 }

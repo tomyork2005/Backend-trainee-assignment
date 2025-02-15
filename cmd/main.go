@@ -2,17 +2,18 @@ package main
 
 import (
 	authService "Backend-trainee-assignment/internal/auth"
-	"Backend-trainee-assignment/internal/config"
-	shopService "Backend-trainee-assignment/internal/domain"
+	shopService "Backend-trainee-assignment/internal/service"
+
+	cfg "Backend-trainee-assignment/internal/config"
 	"Backend-trainee-assignment/internal/transport"
 	"net/http"
 )
 
 func main() {
 
-	cfg := config.MustLoadConfig()
+	config := cfg.MustLoadConfig()
 
-	auth := authService.NewAuthService(cfg.AuthConfig.TokenTTL, cfg.AuthConfig.SingingKey)
+	auth := authService.NewAuthService(config.AuthConfig.TokenTTL, config.AuthConfig.SingingKey)
 	shop := shopService.NewShopService()
 
 	router := transport.NewHandler(shop, auth)

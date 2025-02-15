@@ -5,10 +5,17 @@ import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-playground/validator/v10"
 	"log"
 	"log/slog"
 	"net/http"
 )
+
+var validate *validator.Validate
+
+func init() {
+	validate = validator.New(validator.WithRequiredStructEnabled())
+}
 
 type shopService interface {
 	GetInfo(ctx context.Context, id string) (string, error)
@@ -17,6 +24,7 @@ type shopService interface {
 }
 
 type authService interface {
+	GetOrCreateTokenByCredentials(ctx context.Context, username, providedPassword string) (string, error)
 	ParseToken(ctx context.Context, token string) (string, error)
 }
 
@@ -58,6 +66,12 @@ func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&authRequest); err != nil {
 		slog.Error("Error decoding auth request:", err)
 		http.Error(w, "Failed to decode auth request", http.StatusBadRequest)
+	}
+
+	err := validate.Struct(&authRequest)
+	if err != nil {
+		slog.Error("Error validating auth request:", err)
+		http.Error(w, "Failed to validate auth request", http.StatusBadRequest)
 	}
 
 }
