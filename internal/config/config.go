@@ -11,6 +11,7 @@ type Config struct {
 	Env            string `yaml:"env" env-default:"local"`
 	HttpConfig     `yaml:"http_server"`
 	PostgresConfig `yaml:"postgres"`
+	AuthConfig     `yaml:"auth"`
 }
 
 type HttpConfig struct {
@@ -25,6 +26,11 @@ type PostgresConfig struct {
 	Port     int    `yaml:"port" port-default:"5432"`
 	User     string `yaml:"user" user-default:"postgres"`
 	Password string `yaml:"password" password-default:"postgres"`
+}
+
+type AuthConfig struct {
+	TokenTTL   time.Duration `yaml:"token_ttl" token-ttl-default:"1h"`
+	SingingKey string        `yaml:"singing_key" singing-key-default:"secret"`
 }
 
 func MustLoadConfig() *Config {

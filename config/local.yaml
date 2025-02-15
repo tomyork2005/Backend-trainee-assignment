@@ -9,3 +9,7 @@ postgres_db:
   port: 5432
   user: "postgres"
   password: "mysecretpassword"
+auth:
+  token_ttl: 24h
+  signing_key: "my_secret_key"
+
