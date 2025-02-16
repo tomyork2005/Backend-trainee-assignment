@@ -10,12 +10,22 @@ import (
 	"time"
 )
 
+const (
+	issuerName = "avitoMerchShop"
+)
+
 func generateToken(userID int64, tokenTTL time.Duration, signingKey string) (string, error) {
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		jwtUserID: userID,
-		jwtExp:    jwt.NewNumericDate(time.Now().Add(tokenTTL)),
-	})
+	claims := UserClaims{
+		UserId: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenTTL)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    issuerName,
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	tokenString, err := token.SignedString([]byte(signingKey))
 	if err != nil {

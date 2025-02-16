@@ -3,12 +3,8 @@ package auth
 import (
 	"Backend-trainee-assignment/internal/model"
 	"context"
+	"github.com/golang-jwt/jwt/v5"
 	"time"
-)
-
-const (
-	jwtUserID = "userID"
-	jwtExp    = "exp"
 )
 
 type storage interface {
@@ -29,4 +25,9 @@ func NewAuthService(tokenTTL time.Duration, signingKey string, db storage) *auth
 
 		storage: db,
 	}
+}
+
+type UserClaims struct {
+	UserId int64 `json:"user_id"`
+	jwt.RegisteredClaims
 }

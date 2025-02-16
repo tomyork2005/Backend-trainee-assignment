@@ -27,7 +27,7 @@ type shopService interface {
 
 type authService interface {
 	GetOrCreateTokenByCredentials(ctx context.Context, username, providedPassword string) (string, error)
-	ParseToken(ctx context.Context, token string) (string, error)
+	ParseToken(ctx context.Context, token string) (int64, error)
 }
 
 type Handler struct {
@@ -66,6 +66,8 @@ func (h *Handler) Routes() chi.Router {
 }
 
 func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
 
 	var authRequest AuthRequest
 	if err := json.NewDecoder(r.Body).Decode(&authRequest); err != nil {
@@ -121,11 +123,12 @@ func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetInfo(w http.ResponseWriter, r *http.Request) {
+	intt := r.Context().Value(userIDContextKey).(int64)
 	resp := InfoResponse{
 		Coins: 1000,
 		Inventory: []Item{
-			{Type: "heelo my elizabet", Quantity: 2},
-			{Type: "cup", Quantity: 1},
+			{Type: "heelo my elizabet", Quantity: int(intt)},
+			{Type: "cup", Quantity: int(intt)},
 		},
 		CoinHistory: CoinHistory{
 			Received: []CoinReceived{
@@ -156,7 +159,6 @@ func (h *Handler) PostSendCoin(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// GetBuyItem - покупка предмета по названию
 func (h *Handler) GetBuyItem(w http.ResponseWriter, r *http.Request) {
 	item := chi.URLParam(r, "item")
 	if item == "" {
@@ -167,7 +169,6 @@ func (h *Handler) GetBuyItem(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// PostAuth - авторизация/регистрация и выдача JWT
 func (h *Handler) PostAuth(w http.ResponseWriter, r *http.Request) {
 	var req AuthRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

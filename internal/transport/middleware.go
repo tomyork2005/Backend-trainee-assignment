@@ -2,6 +2,7 @@ package transport
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -28,7 +29,13 @@ func (h *Handler) authMiddleware(next http.Handler) http.Handler {
 		authHeader := r.Header.Get(authorizationHeader)
 		if !strings.HasPrefix(authHeader, bearerPrefix) {
 			slog.Error("Invalid authorization header", slog.String("AuthorizationHeader", authHeader))
-			http.Error(w, "missing or invalid Authorization header", http.StatusUnauthorized)
+
+			resp := ErrorResponse{
+				Errors: "Invalid authorization header",
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 
@@ -37,7 +44,13 @@ func (h *Handler) authMiddleware(next http.Handler) http.Handler {
 		userID, err := h.authService.ParseToken(r.Context(), token)
 		if err != nil {
 			slog.Error("Invalid token", slog.String("token", token), slog.String("error", err.Error()))
-			http.Error(w, "invalid token", http.StatusUnauthorized)
+
+			resp := ErrorResponse{
+				Errors: "Invalid token",
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 
