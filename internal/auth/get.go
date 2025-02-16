@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"Backend-trainee-assignment/internal/auth/autherrors"
 	"context"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
@@ -29,7 +30,7 @@ func (auth *authService) GetOrCreateTokenByCredentials(ctx context.Context, user
 
 	user, err := auth.storage.GetUserByUsername(ctx, username)
 	if err != nil {
-		return "", fmt.Errorf("%w:%w", errStorage, err)
+		return "", fmt.Errorf("%w:%w", autherrors.ErrStorage, err)
 	}
 
 	// if user not found create new and return his token
@@ -38,13 +39,12 @@ func (auth *authService) GetOrCreateTokenByCredentials(ctx context.Context, user
 
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(providedPassword), bcrypt.DefaultCost)
 		if err != nil {
-			slog.Error("Error with hashing password", slog.String("error", err.Error()))
-			return "", fmt.Errorf("%w:%w", errHashing, err)
+			return "", fmt.Errorf("%w:%w", autherrors.ErrHashing, err)
 		}
 
 		user, err = auth.storage.CreateUser(ctx, username, string(hashedPassword))
 		if err != nil {
-			return "", fmt.Errorf("%w:%w", errStorage, err)
+			return "", fmt.Errorf("%w:%w", autherrors.ErrStorage, err)
 		}
 
 		return generateToken(user.ID, auth.tokenTTL, auth.signingKey)
@@ -54,7 +54,7 @@ func (auth *authService) GetOrCreateTokenByCredentials(ctx context.Context, user
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(providedPassword))
 	if err != nil {
-		return "", fmt.Errorf("%w:%w", errInvalidPassword, err)
+		return "", fmt.Errorf("%w:%w", autherrors.ErrInvalidPassword, err)
 	}
 
 	return generateToken(user.ID, auth.tokenTTL, auth.signingKey)

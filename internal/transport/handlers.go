@@ -1,8 +1,10 @@
 package transport
 
 import (
+	"Backend-trainee-assignment/internal/auth/autherrors"
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
@@ -46,15 +48,18 @@ func (h *Handler) Routes() chi.Router {
 	router.Use(loggingMiddleware)
 	router.Use(middleware.Recoverer)
 
-	router.Post("/auth", h.PostAuthEndpoint)
+	router.Route("/api", func(router chi.Router) {
 
-	router.Route("/api", func(routerWithAuth chi.Router) {
+		router.Post("/auth", h.PostAuthEndpoint)
 
-		routerWithAuth.Use(h.authMiddleware)
+		router.Group(func(routerWithAuth chi.Router) {
+			routerWithAuth.Use(h.authMiddleware)
 
-		routerWithAuth.Get("/info", h.GetInfo)
-		routerWithAuth.Post("/sendCoin", h.PostSendCoin)
-		routerWithAuth.Get("/buy/{item}", h.GetBuyItem)
+			routerWithAuth.Get("/info", h.GetInfo)
+			routerWithAuth.Post("/sendCoin", h.PostSendCoin)
+			routerWithAuth.Get("/buy/{item}", h.GetBuyItem)
+
+		})
 	})
 
 	return router
@@ -65,15 +70,54 @@ func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
 	var authRequest AuthRequest
 	if err := json.NewDecoder(r.Body).Decode(&authRequest); err != nil {
 		slog.Error("Error decoding auth request:", err)
-		http.Error(w, "Failed to decode auth request", http.StatusBadRequest)
+
+		resp := ErrorResponse{
+			"Failed to decode auth request",
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(resp)
+		return
 	}
 
-	err := validate.Struct(&authRequest)
+	err := validate.Struct(authRequest)
 	if err != nil {
 		slog.Error("Error validating auth request:", err)
-		http.Error(w, "Failed to validate auth request", http.StatusBadRequest)
+
+		resp := ErrorResponse{
+			Errors: "Failed to validate auth request",
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(resp)
+		return
 	}
 
+	token, err := h.authService.GetOrCreateTokenByCredentials(r.Context(), authRequest.Username, authRequest.Password)
+	if err != nil {
+		if errors.Is(err, autherrors.ErrInvalidPassword) {
+
+			resp := ErrorResponse{
+				Errors: "Invalid password",
+			}
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+
+		resp := ErrorResponse{
+			Errors: "Failed to create token",
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(resp)
+		return
+	}
+
+	resp := AuthResponse{
+		Token: token,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(resp)
+	return
 }
 
 func (h *Handler) GetInfo(w http.ResponseWriter, r *http.Request) {

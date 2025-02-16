@@ -1,9 +1,9 @@
-package auth
+package autherrors
 
 import "errors"
 
 var (
-	errStorage         = errors.New("storage error")
-	errInvalidPassword = errors.New("invalid password")
-	errHashing         = errors.New("hashing error")
+	ErrStorage         = errors.New("storage error")
+	ErrInvalidPassword = errors.New("invalid password")
+	ErrHashing         = errors.New("hashing error")
 )
