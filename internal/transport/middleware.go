@@ -1,6 +1,7 @@
 package transport
 
 import (
+	transportModel "Backend-trainee-assignment/internal/model/transport"
 	"context"
 	"encoding/json"
 	"log/slog"
@@ -30,7 +31,7 @@ func (h *Handler) authMiddleware(next http.Handler) http.Handler {
 		if !strings.HasPrefix(authHeader, bearerPrefix) {
 			slog.Error("Invalid authorization header", slog.String("AuthorizationHeader", authHeader))
 
-			resp := ErrorResponse{
+			resp := transportModel.ErrorResponse{
 				Errors: "Invalid authorization header",
 			}
 			w.Header().Set("Content-Type", "application/json")
@@ -45,7 +46,7 @@ func (h *Handler) authMiddleware(next http.Handler) http.Handler {
 		if err != nil {
 			slog.Error("Invalid token", slog.String("token", token), slog.String("error", err.Error()))
 
-			resp := ErrorResponse{
+			resp := transportModel.ErrorResponse{
 				Errors: "Invalid token",
 			}
 			w.Header().Set("Content-Type", "application/json")

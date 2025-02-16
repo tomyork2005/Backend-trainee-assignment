@@ -38,7 +38,7 @@ func generateToken(userID int64, tokenTTL time.Duration, signingKey string) (str
 
 func (auth *authService) GetOrCreateTokenByCredentials(ctx context.Context, username, providedPassword string) (string, error) {
 
-	user, err := auth.storage.GetUserByUsername(ctx, username)
+	user, err := auth.storage.GetUserIDByUsername(ctx, username)
 	if err != nil {
 		return "", fmt.Errorf("%w:%w", autherrors.ErrStorage, err)
 	}

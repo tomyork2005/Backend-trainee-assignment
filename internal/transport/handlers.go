@@ -2,6 +2,7 @@ package transport
 
 import (
 	"Backend-trainee-assignment/internal/auth/autherrors"
+	transportModel "Backend-trainee-assignment/internal/model/transport"
 	"context"
 	"encoding/json"
 	"errors"
@@ -69,12 +70,12 @@ func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	var authRequest AuthRequest
+	var authRequest transportModel.AuthRequest
 	if err := json.NewDecoder(r.Body).Decode(&authRequest); err != nil {
 		slog.Error("Error decoding auth request:", err)
 
-		resp := ErrorResponse{
-			"Failed to decode auth request",
+		resp := transportModel.ErrorResponse{
+			Errors: "Failed to decode auth request",
 		}
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(resp)
@@ -85,7 +86,7 @@ func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("Error validating auth request:", err)
 
-		resp := ErrorResponse{
+		resp := transportModel.ErrorResponse{
 			Errors: "Failed to validate auth request",
 		}
 		w.WriteHeader(http.StatusBadRequest)
@@ -97,7 +98,7 @@ func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, autherrors.ErrInvalidPassword) {
 
-			resp := ErrorResponse{
+			resp := transportModel.ErrorResponse{
 				Errors: "Invalid password",
 			}
 			w.WriteHeader(http.StatusUnauthorized)
@@ -105,7 +106,7 @@ func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		resp := ErrorResponse{
+		resp := transportModel.ErrorResponse{
 			Errors: "Failed to create token",
 		}
 		w.WriteHeader(http.StatusInternalServerError)
@@ -113,7 +114,7 @@ func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := AuthResponse{
+	resp := transportModel.AuthResponse{
 		Token: token,
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -124,17 +125,17 @@ func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GetInfo(w http.ResponseWriter, r *http.Request) {
 	intt := r.Context().Value(userIDContextKey).(int64)
-	resp := InfoResponse{
+	resp := transportModel.InfoResponse{
 		Coins: 1000,
-		Inventory: []Item{
+		Inventory: []transportModel.Item{
 			{Type: "heelo my elizabet", Quantity: int(intt)},
 			{Type: "cup", Quantity: int(intt)},
 		},
-		CoinHistory: CoinHistory{
-			Received: []CoinReceived{
+		CoinHistory: transportModel.CoinHistory{
+			Received: []transportModel.CoinReceived{
 				{FromUser: "alice", Amount: 50},
 			},
-			Sent: []CoinSent{
+			Sent: []transportModel.CoinSent{
 				{ToUser: "bob", Amount: 20},
 			},
 		},
@@ -144,15 +145,15 @@ func (h *Handler) GetInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PostSendCoin(w http.ResponseWriter, r *http.Request) {
-	var req SendCoinRequest
+	var req transportModel.SendCoinRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, ErrorResponse{Errors: "invalid request body"})
+		writeJSON(w, http.StatusBadRequest, transportModel.ErrorResponse{Errors: "invalid request body"})
 		return
 	}
 
 	if req.Amount <= 0 || req.ToUser == "" {
-		writeJSON(w, http.StatusBadRequest, ErrorResponse{Errors: "invalid parameters"})
+		writeJSON(w, http.StatusBadRequest, transportModel.ErrorResponse{Errors: "invalid parameters"})
 		return
 	}
 
@@ -162,7 +163,7 @@ func (h *Handler) PostSendCoin(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetBuyItem(w http.ResponseWriter, r *http.Request) {
 	item := chi.URLParam(r, "item")
 	if item == "" {
-		writeJSON(w, http.StatusBadRequest, ErrorResponse{Errors: "item parameter is required"})
+		writeJSON(w, http.StatusBadRequest, transportModel.ErrorResponse{Errors: "item parameter is required"})
 		return
 	}
 
@@ -170,19 +171,19 @@ func (h *Handler) GetBuyItem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PostAuth(w http.ResponseWriter, r *http.Request) {
-	var req AuthRequest
+	var req transportModel.AuthRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, ErrorResponse{Errors: "invalid request body"})
+		writeJSON(w, http.StatusBadRequest, transportModel.ErrorResponse{Errors: "invalid request body"})
 		return
 	}
 	if req.Username == "" || req.Password == "" {
-		writeJSON(w, http.StatusBadRequest, ErrorResponse{Errors: "username and password required"})
+		writeJSON(w, http.StatusBadRequest, transportModel.ErrorResponse{Errors: "username and password required"})
 		return
 	}
 
 	token := "MOCKED_JWT_TOKEN"
 
-	resp := AuthResponse{Token: token}
+	resp := transportModel.AuthResponse{Token: token}
 	writeJSON(w, http.StatusOK, resp)
 }
 
