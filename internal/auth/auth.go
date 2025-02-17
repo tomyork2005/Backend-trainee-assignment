@@ -8,7 +8,7 @@ import (
 )
 
 type storage interface {
-	GetUserIDByUsername(ctx context.Context, username string) (*service.User, error)
+	GetUserByUsername(ctx context.Context, username string) (*service.User, error)
 	CreateUser(ctx context.Context, username, password string) (*service.User, error)
 }
 type authService struct {
@@ -28,6 +28,6 @@ func NewAuthService(tokenTTL time.Duration, signingKey string, db storage) *auth
 }
 
 type UserClaims struct {
-	UserId int64 `json:"user_id"`
+	Username string `json:"username"`
 	jwt.RegisteredClaims
 }

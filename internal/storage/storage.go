@@ -28,12 +28,20 @@ func NewStorage(connString string) (*storage, error) {
 	}, nil
 }
 
-func (s *storage) GetUserByUserId(ctx context.Context, userID int64) (*service.User, error) {
+func (s *storage) GetUserByUsername(ctx context.Context, username string) (*service.User, error) {
 
-	row := s.db.QueryRow(ctx, queryGetUserByUserID, userID)
+	row := s.db.QueryRow(ctx, queryGetUserByUsername, username)
 
-	var result service.User
-	err := row.Scan(&result)
+	var user service.User
+
+	err := row.Scan(
+		&user.Username,
+		&user.Password,
+		&user.Balance,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -41,12 +49,12 @@ func (s *storage) GetUserByUserId(ctx context.Context, userID int64) (*service.U
 		return nil, err
 	}
 
-	return &result, nil
+	return &user, nil
 }
 
-func (s *storage) GetPurchasesByUserID(ctx context.Context, userID int64) ([]*service.Purchase, error) {
+func (s *storage) GetPurchasesByUsername(ctx context.Context, username string) ([]*service.Purchase, error) {
 
-	rows, err := s.db.Query(ctx, queryGetPurchasesByUserID, userID)
+	rows, err := s.db.Query(ctx, queryGetPurchasesByUsername, username)
 	if err != nil {
 		return nil, err
 	}
@@ -66,9 +74,9 @@ func (s *storage) GetPurchasesByUserID(ctx context.Context, userID int64) ([]*se
 	return result, nil
 }
 
-func (s *storage) GetCoinTransactionsByUserID(ctx context.Context, userID int64) ([]*service.CoinTransaction, error) {
+func (s *storage) GetCoinTransactionsByUsername(ctx context.Context, username string) ([]*service.CoinTransaction, error) {
 
-	rows, err := s.db.Query(ctx, queryGetCoinTransactionsByUserID, userID)
+	rows, err := s.db.Query(ctx, queryGetCoinTransactionsByUsername, username)
 	if err != nil {
 		return nil, err
 	}
@@ -87,14 +95,19 @@ func (s *storage) GetCoinTransactionsByUserID(ctx context.Context, userID int64)
 	return result, nil
 }
 
-func (s *storage) GetUserByUsername(ctx context.Context, username string) (*service.User, error) {
-	return nil, nil
-}
-
 func (s *storage) CreateUser(ctx context.Context, username, password string) (*service.User, error) {
-	return &service.User{
-		ID:       123,
-		Username: username,
-		Password: password,
-	}, nil
+	var user service.User
+
+	err := s.db.QueryRow(ctx, queryCreateUser, username, password).Scan(
+		&user.Username,
+		&user.Password,
+		&user.Balance,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }

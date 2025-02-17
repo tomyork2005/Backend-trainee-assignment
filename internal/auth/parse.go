@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func (auth *authService) ParseToken(ctx context.Context, token string) (int64, error) {
+func (auth *authService) ParseToken(ctx context.Context, token string) (string, error) {
 	tkn, err := jwt.ParseWithClaims(token, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("%w:%v", autherrors.ErrUnexpectedHashAlgorithm, token.Header["alg"])
@@ -16,21 +16,21 @@ func (auth *authService) ParseToken(ctx context.Context, token string) (int64, e
 		return []byte(auth.signingKey), nil
 	})
 	if err != nil {
-		return 0, fmt.Errorf("%w:%w", autherrors.ErrParsingToken, err)
+		return "", fmt.Errorf("%w:%w", autherrors.ErrParsingToken, err)
 	}
 
 	if !tkn.Valid {
-		return 0, autherrors.ErrInvalidToken
+		return "", autherrors.ErrInvalidToken
 	}
 
 	claims, ok := tkn.Claims.(*UserClaims)
 	if !ok {
-		return 0, autherrors.ErrInvalidToken
+		return "", autherrors.ErrInvalidToken
 	}
 
 	if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(time.Now()) {
-		return 0, autherrors.ErrTokenExpired
+		return "", autherrors.ErrTokenExpired
 	}
 
-	return claims.UserId, nil
+	return claims.Username, nil
 }

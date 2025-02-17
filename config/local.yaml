@@ -6,9 +6,10 @@ http_server:
   idle_timeout: 60s
 postgres_db:
   host: "localhost"
-  port: 5432
-  user: "postgres"
-  password: "mysecretpassword"
+  port: 5431
+  user: "admin"
+  password: "admin"
+  db: "postgres"
 auth:
   token_ttl: 24h
   signing_key: "my_secret_key"

@@ -1,18 +1,22 @@
 package storage
 
 const (
-	queryGetCoinTransactionsByUserID = `
+	queryGetCoinTransactionsByUsername = `
 	SELECT *
 	FROM coin_transactions 
-	WHERE user_id = $1
+	WHERE from_user_id = $1 or to_user_id = $1
 	`
-	queryGetPurchasesByUserID = `
+	queryGetPurchasesByUsername = `
 	SELECT *
 	FROM purchases
-	where user_id = $1
+	where username = $1
 	`
-	queryGetUserByUserID = `
-	SELECT *
-	FROM users WHERE id = $1
+
+	queryCreateUser = `
+	INSERT INTO users(username, password_hash) VALUES ($1, $2) RETURNING username, password_hash, coins, created_at, updated_at
+`
+	queryGetUserByUsername = `
+	SELECT username, password_hash, coins, created_at, updated_at
+	FROM users WHERE username = $1
 	`
 )

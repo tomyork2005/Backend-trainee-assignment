@@ -14,10 +14,10 @@ const (
 	issuerName = "avitoMerchShop"
 )
 
-func generateToken(userID int64, tokenTTL time.Duration, signingKey string) (string, error) {
+func generateToken(username string, tokenTTL time.Duration, signingKey string) (string, error) {
 
 	claims := UserClaims{
-		UserId: userID,
+		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -38,8 +38,10 @@ func generateToken(userID int64, tokenTTL time.Duration, signingKey string) (str
 
 func (auth *authService) GetOrCreateTokenByCredentials(ctx context.Context, username, providedPassword string) (string, error) {
 
-	user, err := auth.storage.GetUserIDByUsername(ctx, username)
+	user, err := auth.storage.GetUserByUsername(ctx, username)
 	if err != nil {
+		slog.Error("Error getting user by username", slog.String("username", username), slog.String("error", err.Error()))
+
 		return "", fmt.Errorf("%w:%w", autherrors.ErrStorage, err)
 	}
 
@@ -49,15 +51,18 @@ func (auth *authService) GetOrCreateTokenByCredentials(ctx context.Context, user
 
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(providedPassword), bcrypt.DefaultCost)
 		if err != nil {
+			slog.Error("Error hashing password", slog.String("username", username))
+
 			return "", fmt.Errorf("%w:%w", autherrors.ErrHashing, err)
 		}
 
 		user, err = auth.storage.CreateUser(ctx, username, string(hashedPassword))
 		if err != nil {
+			slog.Error("Error creating user", slog.String("username", username), slog.String("error", err.Error()))
 			return "", fmt.Errorf("%w:%w", autherrors.ErrStorage, err)
 		}
 
-		return generateToken(user.ID, auth.tokenTTL, auth.signingKey)
+		return generateToken(user.Username, auth.tokenTTL, auth.signingKey)
 	}
 
 	// compare passwords and return token
@@ -67,5 +72,5 @@ func (auth *authService) GetOrCreateTokenByCredentials(ctx context.Context, user
 		return "", fmt.Errorf("%w:%w", autherrors.ErrInvalidPassword, err)
 	}
 
-	return generateToken(user.ID, auth.tokenTTL, auth.signingKey)
+	return generateToken(user.Username, auth.tokenTTL, auth.signingKey)
 }

@@ -21,14 +21,14 @@ func init() {
 }
 
 type shopService interface {
-	GetInfo(ctx context.Context, id string) (string, error)
+	GetInfo(ctx context.Context) (*transportModel.InfoResponse, error)
 	SendCoins(ctx context.Context, target string) error
 	BuyItem(ctx context.Context, id string) error
 }
 
 type authService interface {
 	GetOrCreateTokenByCredentials(ctx context.Context, username, providedPassword string) (string, error)
-	ParseToken(ctx context.Context, token string) (int64, error)
+	ParseToken(ctx context.Context, token string) (string, error)
 }
 
 type Handler struct {
@@ -124,24 +124,23 @@ func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetInfo(w http.ResponseWriter, r *http.Request) {
-	intt := r.Context().Value(userIDContextKey).(int64)
-	resp := transportModel.InfoResponse{
-		Coins: 1000,
-		Inventory: []transportModel.Item{
-			{Type: "heelo my elizabet", Quantity: int(intt)},
-			{Type: "cup", Quantity: int(intt)},
-		},
-		CoinHistory: transportModel.CoinHistory{
-			Received: []transportModel.CoinReceived{
-				{FromUser: "alice", Amount: 50},
-			},
-			Sent: []transportModel.CoinSent{
-				{ToUser: "bob", Amount: 20},
-			},
-		},
+
+	infoResponse, err := h.shopService.GetInfo(r.Context())
+	if err != nil {
+		resp := transportModel.ErrorResponse{
+			Errors: "Internal server error with storage",
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(resp)
+		return
 	}
 
-	writeJSON(w, http.StatusOK, resp)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(infoResponse)
+	return
 }
 
 func (h *Handler) PostSendCoin(w http.ResponseWriter, r *http.Request) {
