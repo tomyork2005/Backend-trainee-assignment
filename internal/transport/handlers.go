@@ -10,7 +10,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
-	"log"
 	"log/slog"
 	"net/http"
 )
@@ -196,36 +195,6 @@ func (h *Handler) PostSendCoin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetBuyItem(w http.ResponseWriter, r *http.Request) {
-	item := chi.URLParam(r, "item")
-	if item == "" {
-		writeJSON(w, http.StatusBadRequest, transportModel.ErrorResponse{Errors: "item parameter is required"})
-		return
-	}
 
 	w.WriteHeader(http.StatusOK)
-}
-
-func (h *Handler) PostAuth(w http.ResponseWriter, r *http.Request) {
-	var req transportModel.AuthRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, transportModel.ErrorResponse{Errors: "invalid request body"})
-		return
-	}
-	if req.Username == "" || req.Password == "" {
-		writeJSON(w, http.StatusBadRequest, transportModel.ErrorResponse{Errors: "username and password required"})
-		return
-	}
-
-	token := "MOCKED_JWT_TOKEN"
-
-	resp := transportModel.AuthResponse{Token: token}
-	writeJSON(w, http.StatusOK, resp)
-}
-
-func writeJSON(w http.ResponseWriter, statusCode int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	if err := json.NewEncoder(w).Encode(data); err != nil {
-		log.Printf("error encoding json response: %v", err)
-	}
 }
