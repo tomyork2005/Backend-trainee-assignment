@@ -10,4 +10,5 @@ var (
 	ErrParsingToken            = errors.New("error with parse token")
 	ErrHashing                 = errors.New("hashing error")
 	ErrUnexpectedHashAlgorithm = errors.New("unexpected hash algorithm")
+	ErrGenerateToken           = errors.New("error generating token")
 )

@@ -12,7 +12,7 @@ import (
 const (
 	bearerPrefix        = "Bearer "
 	authorizationHeader = "Authorization"
-	userIDContextKey    = "UserID"
+	usernameContextKey  = "Username"
 )
 
 func loggingMiddleware(next http.Handler) http.Handler {
@@ -55,7 +55,7 @@ func (h *Handler) authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), userIDContextKey, userID)
+		ctx := context.WithValue(r.Context(), usernameContextKey, userID)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

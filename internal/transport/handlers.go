@@ -3,6 +3,7 @@ package transport
 import (
 	"Backend-trainee-assignment/internal/auth/autherrors"
 	transportModel "Backend-trainee-assignment/internal/model/transport"
+	"Backend-trainee-assignment/internal/service/serverrors"
 	"context"
 	"encoding/json"
 	"errors"
@@ -22,7 +23,7 @@ func init() {
 
 type shopService interface {
 	GetInfo(ctx context.Context) (*transportModel.InfoResponse, error)
-	SendCoins(ctx context.Context, target string) error
+	SendCoins(ctx context.Context, target string, amount int) error
 	BuyItem(ctx context.Context, id string) error
 }
 
@@ -74,11 +75,10 @@ func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&authRequest); err != nil {
 		slog.Error("Error decoding auth request:", err)
 
-		resp := transportModel.ErrorResponse{
-			Errors: "Failed to decode auth request",
-		}
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
+			Errors: "Failed to decode auth request",
+		})
 		return
 	}
 
@@ -86,11 +86,10 @@ func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("Error validating auth request:", err)
 
-		resp := transportModel.ErrorResponse{
-			Errors: "Failed to validate auth request",
-		}
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
+			Errors: "Failed to validate auth request",
+		})
 		return
 	}
 
@@ -98,28 +97,26 @@ func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, autherrors.ErrInvalidPassword) {
 
-			resp := transportModel.ErrorResponse{
-				Errors: "Invalid password",
-			}
 			w.WriteHeader(http.StatusUnauthorized)
-			_ = json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
+				Errors: "Invalid password",
+			})
 			return
 		}
 
-		resp := transportModel.ErrorResponse{
-			Errors: "Failed to create token",
-		}
 		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
+			Errors: "Failed to create token",
+		})
 		return
 	}
 
-	resp := transportModel.AuthResponse{
-		Token: token,
-	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(transportModel.AuthResponse{
+		Token: token,
+	})
+
 	return
 }
 
@@ -127,13 +124,11 @@ func (h *Handler) GetInfo(w http.ResponseWriter, r *http.Request) {
 
 	infoResponse, err := h.shopService.GetInfo(r.Context())
 	if err != nil {
-		resp := transportModel.ErrorResponse{
-			Errors: "Internal server error with storage",
-		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
+			Errors: "Internal server error with storage",
+		})
 		return
 	}
 
@@ -144,15 +139,56 @@ func (h *Handler) GetInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PostSendCoin(w http.ResponseWriter, r *http.Request) {
-	var req transportModel.SendCoinRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, transportModel.ErrorResponse{Errors: "invalid request body"})
+	var coinRequest transportModel.SendCoinRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&coinRequest); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
+			Errors: "Failed to decode request body",
+		})
 		return
 	}
 
-	if req.Amount <= 0 || req.ToUser == "" {
-		writeJSON(w, http.StatusBadRequest, transportModel.ErrorResponse{Errors: "invalid parameters"})
+	err := validate.Struct(coinRequest)
+	if err != nil {
+		slog.Error("Error validating coin request:", err)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
+			Errors: "Failed to validate coin request",
+		})
+		return
+	}
+
+	err = h.shopService.SendCoins(r.Context(), coinRequest.ToUser, coinRequest.Amount)
+	if err != nil {
+		if errors.Is(serverrors.ErrBalanceNotEnough, err) {
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
+				Errors: "User balance not enough",
+			})
+			return
+		}
+
+		if errors.Is(serverrors.ErrInvalidTarget, err) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
+				Errors: "Invalid or cant found target",
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
+			Errors: "Internal server error",
+		})
 		return
 	}
 

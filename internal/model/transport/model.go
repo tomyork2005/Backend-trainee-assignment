@@ -40,6 +40,6 @@ type CoinSent struct {
 }
 
 type SendCoinRequest struct {
-	ToUser string `json:"toUser"`
-	Amount int    `json:"amount"`
+	ToUser string `json:"toUser" validate:"required,gte=1"`
+	Amount int    `json:"amount" validate:"required,numeric"`
 }

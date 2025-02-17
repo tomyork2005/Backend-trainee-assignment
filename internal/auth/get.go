@@ -62,7 +62,15 @@ func (auth *authService) GetOrCreateTokenByCredentials(ctx context.Context, user
 			return "", fmt.Errorf("%w:%w", autherrors.ErrStorage, err)
 		}
 
-		return generateToken(user.Username, auth.tokenTTL, auth.signingKey)
+		token, err := generateToken(user.Username, auth.tokenTTL, auth.signingKey)
+		if err != nil {
+			slog.Error("Error generating token", slog.String("username", username))
+			return "", fmt.Errorf("%w:%w", autherrors.ErrGenerateToken, err)
+		}
+
+		slog.Info("Successfully generated token and create user", slog.String("username", username))
+
+		return token, nil
 	}
 
 	// compare passwords and return token
@@ -71,6 +79,8 @@ func (auth *authService) GetOrCreateTokenByCredentials(ctx context.Context, user
 	if err != nil {
 		return "", fmt.Errorf("%w:%w", autherrors.ErrInvalidPassword, err)
 	}
+
+	slog.Info("Successfully generated token", slog.String("username", username))
 
 	return generateToken(user.Username, auth.tokenTTL, auth.signingKey)
 }

@@ -64,7 +64,13 @@ func (s *storage) GetPurchasesByUsername(ctx context.Context, username string) (
 	result := make([]*service.Purchase, 0)
 	for rows.Next() {
 		var purchases service.Purchase
-		err = rows.Scan(&purchases)
+		err = rows.Scan(
+			&purchases.ID,
+			&purchases.User,
+			&purchases.Merch,
+			&purchases.Quantity,
+			&purchases.CreatedAt,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -85,7 +91,13 @@ func (s *storage) GetCoinTransactionsByUsername(ctx context.Context, username st
 	result := make([]*service.CoinTransaction, 0)
 	for rows.Next() {
 		var coinTransaction service.CoinTransaction
-		err = rows.Scan(&coinTransaction)
+		err = rows.Scan(
+			&coinTransaction.ID,
+			&coinTransaction.FromUser,
+			&coinTransaction.ToUser,
+			&coinTransaction.Amount,
+			&coinTransaction.CreatedAt,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -93,6 +105,48 @@ func (s *storage) GetCoinTransactionsByUsername(ctx context.Context, username st
 	}
 
 	return result, nil
+}
+
+func (s *storage) TransferCoinsToTarget(ctx context.Context, username string, target string, amount int) error {
+
+	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel:   pgx.ReadCommitted,
+		AccessMode: pgx.ReadWrite,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback(ctx)
+		} else {
+			_ = tx.Commit(ctx)
+		}
+	}()
+
+	var balance int
+	err = tx.QueryRow(ctx, queryUpdateFrom, amount, username).Scan(&balance)
+	if err != nil {
+		return err
+	}
+
+	if balance < 0 {
+		return errors.New("not enough balance")
+	}
+
+	_, err = tx.Exec(ctx, queryUpdateTo, amount, target)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(ctx, queryInsertTransaction, username, target, amount)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *storage) CreateUser(ctx context.Context, username, password string) (*service.User, error) {
