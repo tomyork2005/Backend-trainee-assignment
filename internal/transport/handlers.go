@@ -207,6 +207,7 @@ func (h *Handler) GetBuyItem(w http.ResponseWriter, r *http.Request) {
 			_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
 				Errors: "Merch dont exist",
 			})
+			return
 		}
 
 		if errors.Is(serverrors.ErrBalanceNotEnough, err) {
@@ -214,6 +215,7 @@ func (h *Handler) GetBuyItem(w http.ResponseWriter, r *http.Request) {
 			_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
 				Errors: "User balance not enough",
 			})
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -221,7 +223,9 @@ func (h *Handler) GetBuyItem(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
 			Errors: "Internal server error",
 		})
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
+	return
 }

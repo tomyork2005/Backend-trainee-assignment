@@ -124,5 +124,7 @@ func (s *Service) BuyItem(ctx context.Context, merchName string) error {
 		return fmt.Errorf("%w:%w", serverrors.ErrStorage, err)
 	}
 
+	slog.Info("Successfully buy purchase", "merchName", merchName, "price", price)
+
 	return nil
 }
