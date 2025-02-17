@@ -17,6 +17,8 @@ type storage interface {
 	GetPurchasesByUsername(ctx context.Context, username string) ([]*service.Purchase, error)
 	GetCoinTransactionsByUsername(ctx context.Context, username string) ([]*service.CoinTransaction, error)
 	TransferCoinsToTarget(ctx context.Context, username string, target string, amount int) error
+	GetMerchPrice(ctx context.Context, merchName string) (int, bool, error)
+	CreatePurchase(ctx context.Context, username string, merchName string, price int) error
 }
 
 type Service struct {
@@ -92,6 +94,35 @@ func (s *Service) SendCoins(ctx context.Context, target string, amount int) erro
 	return nil
 }
 
-func (s *Service) BuyItem(ctx context.Context, id string) error {
+func (s *Service) BuyItem(ctx context.Context, merchName string) error {
+
+	price, exist, err := s.storage.GetMerchPrice(ctx, merchName)
+	if err != nil {
+		slog.Error("GetMerchPrice failed", "error", err)
+		return fmt.Errorf("%w:%w", serverrors.ErrStorage, err)
+	}
+
+	if !exist {
+		slog.Error("GetMerchPrice not found", "merchName", merchName)
+		return serverrors.ErrMerchDontExist
+	}
+
+	user, err := s.storage.GetUserByUsername(ctx, ctx.Value(usernameContextKey).(string))
+	if err != nil {
+		slog.Error("Failed to get user by username", "user", ctx.Value(usernameContextKey).(string))
+		return fmt.Errorf("%w:%w", serverrors.ErrStorage, err)
+	}
+
+	if user.Balance < int64(price) {
+		slog.Error("Balance does not enough", "user", ctx.Value(usernameContextKey).(string))
+		return serverrors.ErrBalanceNotEnough
+	}
+
+	err = s.storage.CreatePurchase(ctx, ctx.Value(usernameContextKey).(string), merchName, price)
+	if err != nil {
+		slog.Error("Failed to create purchase", "user", ctx.Value(usernameContextKey).(string), "err", err)
+		return fmt.Errorf("%w:%w", serverrors.ErrStorage, err)
+	}
+
 	return nil
 }

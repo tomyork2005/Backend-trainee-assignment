@@ -165,3 +165,53 @@ func (s *storage) CreateUser(ctx context.Context, username, password string) (*s
 
 	return &user, nil
 }
+
+func (s *storage) GetMerchPrice(ctx context.Context, merchName string) (int, bool, error) {
+
+	var price int
+	err := s.db.QueryRow(ctx, queryGetMerchPrice, merchName).Scan(&price)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, false, nil
+		}
+		return 0, false, err
+	}
+
+	return price, true, nil
+}
+
+func (s *storage) CreatePurchase(ctx context.Context, username string, merchName string, price int) error {
+
+	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel:   pgx.ReadCommitted,
+		AccessMode: pgx.ReadWrite,
+	})
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback(ctx)
+		} else {
+			_ = tx.Commit(ctx)
+		}
+	}()
+
+	var balance int
+	err = tx.QueryRow(ctx, queryUpdateUserCoinWithReturnBalance, price, username).Scan(&balance)
+	if err != nil {
+		return err
+	}
+
+	if balance < 0 {
+		return errors.New("not enough balance")
+	}
+
+	_, err = tx.Exec(ctx, queryInsertPurchase, username, merchName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

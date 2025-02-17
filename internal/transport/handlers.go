@@ -23,7 +23,7 @@ func init() {
 type shopService interface {
 	GetInfo(ctx context.Context) (*transportModel.InfoResponse, error)
 	SendCoins(ctx context.Context, target string, amount int) error
-	BuyItem(ctx context.Context, id string) error
+	BuyItem(ctx context.Context, merchName string) error
 }
 
 type authService interface {
@@ -195,6 +195,33 @@ func (h *Handler) PostSendCoin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetBuyItem(w http.ResponseWriter, r *http.Request) {
+
+	merchName := chi.URLParam(r, "item")
+
+	err := h.shopService.BuyItem(r.Context(), merchName)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+
+		if errors.Is(serverrors.ErrMerchDontExist, err) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
+				Errors: "Merch dont exist",
+			})
+		}
+
+		if errors.Is(serverrors.ErrBalanceNotEnough, err) {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
+				Errors: "User balance not enough",
+			})
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
+			Errors: "Internal server error",
+		})
+	}
 
 	w.WriteHeader(http.StatusOK)
 }
