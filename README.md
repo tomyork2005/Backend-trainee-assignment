@@ -2,7 +2,6 @@
 
 ### TODO
 
-- Дописать логику
 - Тесты
 - Makefile
 - Docker-compose

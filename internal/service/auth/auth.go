@@ -11,15 +11,15 @@ type storage interface {
 	GetUserByUsername(ctx context.Context, username string) (*service.User, error)
 	CreateUser(ctx context.Context, username, password string) (*service.User, error)
 }
-type authService struct {
+type AuthService struct {
 	tokenTTL   time.Duration
 	signingKey string
 
 	storage storage
 }
 
-func NewAuthService(tokenTTL time.Duration, signingKey string, db storage) *authService {
-	return &authService{
+func NewAuthService(tokenTTL time.Duration, signingKey string, db storage) *AuthService {
+	return &AuthService{
 		tokenTTL:   tokenTTL,
 		signingKey: signingKey,
 

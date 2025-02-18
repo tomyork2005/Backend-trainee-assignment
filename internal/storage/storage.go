@@ -8,11 +8,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type storage struct {
+type Storage struct {
 	db *pgxpool.Pool
 }
 
-func NewStorage(connString string) (*storage, error) {
+func NewStorage(connString string) (*Storage, error) {
 	config, err := pgxpool.ParseConfig(connString)
 	if err != nil {
 		return nil, err
@@ -23,12 +23,20 @@ func NewStorage(connString string) (*storage, error) {
 		return nil, err
 	}
 
-	return &storage{
+	return &Storage{
 		db: pool,
 	}, nil
 }
 
-func (s *storage) GetUserByUsername(ctx context.Context, username string) (*service.User, error) {
+func (s *Storage) Ping() error {
+	return s.db.Ping(context.Background())
+}
+
+func (s *Storage) Close() {
+	s.db.Close()
+}
+
+func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*service.User, error) {
 
 	row := s.db.QueryRow(ctx, queryGetUserByUsername, username)
 
@@ -52,7 +60,7 @@ func (s *storage) GetUserByUsername(ctx context.Context, username string) (*serv
 	return &user, nil
 }
 
-func (s *storage) GetPurchasesByUsername(ctx context.Context, username string) ([]*service.Purchase, error) {
+func (s *Storage) GetPurchasesByUsername(ctx context.Context, username string) ([]*service.Purchase, error) {
 
 	rows, err := s.db.Query(ctx, queryGetPurchasesByUsername, username)
 	if err != nil {
@@ -80,7 +88,7 @@ func (s *storage) GetPurchasesByUsername(ctx context.Context, username string) (
 	return result, nil
 }
 
-func (s *storage) GetCoinTransactionsByUsername(ctx context.Context, username string) ([]*service.CoinTransaction, error) {
+func (s *Storage) GetCoinTransactionsByUsername(ctx context.Context, username string) ([]*service.CoinTransaction, error) {
 
 	rows, err := s.db.Query(ctx, queryGetCoinTransactionsByUsername, username)
 	if err != nil {
@@ -107,7 +115,7 @@ func (s *storage) GetCoinTransactionsByUsername(ctx context.Context, username st
 	return result, nil
 }
 
-func (s *storage) TransferCoinsToTarget(ctx context.Context, username string, target string, amount int) error {
+func (s *Storage) TransferCoinsToTarget(ctx context.Context, username string, target string, amount int) error {
 
 	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel:   pgx.ReadCommitted,
@@ -149,7 +157,7 @@ func (s *storage) TransferCoinsToTarget(ctx context.Context, username string, ta
 	return nil
 }
 
-func (s *storage) CreateUser(ctx context.Context, username, password string) (*service.User, error) {
+func (s *Storage) CreateUser(ctx context.Context, username, password string) (*service.User, error) {
 	var user service.User
 
 	err := s.db.QueryRow(ctx, queryCreateUser, username, password).Scan(
@@ -166,7 +174,7 @@ func (s *storage) CreateUser(ctx context.Context, username, password string) (*s
 	return &user, nil
 }
 
-func (s *storage) GetMerchPrice(ctx context.Context, merchName string) (int, bool, error) {
+func (s *Storage) GetMerchPrice(ctx context.Context, merchName string) (int, bool, error) {
 
 	var price int
 	err := s.db.QueryRow(ctx, queryGetMerchPrice, merchName).Scan(&price)
@@ -180,7 +188,7 @@ func (s *storage) GetMerchPrice(ctx context.Context, merchName string) (int, boo
 	return price, true, nil
 }
 
-func (s *storage) CreatePurchase(ctx context.Context, username string, merchName string, price int) error {
+func (s *Storage) CreatePurchase(ctx context.Context, username string, merchName string, price int) error {
 
 	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel:   pgx.ReadCommitted,

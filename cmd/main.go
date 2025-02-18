@@ -1,41 +1,36 @@
 package main
 
 import (
-	authService "Backend-trainee-assignment/internal/auth"
-	cfg "Backend-trainee-assignment/internal/config"
-	shopService "Backend-trainee-assignment/internal/service"
-	"Backend-trainee-assignment/internal/storage"
-	"Backend-trainee-assignment/internal/transport"
+	"Backend-trainee-assignment/internal/app"
+	"Backend-trainee-assignment/internal/config"
+
 	"log/slog"
-	"net/http"
-	"strconv"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
 
-	config := cfg.MustLoadConfig()
+	slog.Info("Logger with level INFO ENABLED")
 
-	db, err := storage.NewStorage(postgresConnectionString(&config.PostgresConfig))
-	if err != nil {
-		slog.Error("Error connecting to database")
-		panic(err)
-	}
+	cfg := config.MustLoadConfig()
+	application := app.NewApp(cfg)
 
-	auth := authService.NewAuthService(config.AuthConfig.TokenTTL, config.AuthConfig.SingingKey, db)
-	shop := shopService.NewShopService(db)
+	go func() {
+		err := application.Start()
+		if err != nil {
+			os.Exit(1)
+		}
+	}()
+	slog.Info("Application successfully started")
 
-	router := transport.NewHandler(shop, auth)
+	// Graceful shutdown
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
-	r := router.Routes()
+	<-stop
 
-	err = http.ListenAndServe("localhost:8080", r)
-	if err != nil {
-		panic(err)
-	}
-
-}
-
-func postgresConnectionString(config *cfg.PostgresConfig) string {
-	port := strconv.Itoa(config.Port)
-	return "postgres://" + config.User + ":" + config.Password + "@" + config.Host + ":" + port + "/" + config.DbName
+	application.Stop()
+	slog.Info("Application successfully stopped")
 }

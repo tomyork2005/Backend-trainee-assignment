@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"Backend-trainee-assignment/internal/auth/autherrors"
+	"Backend-trainee-assignment/internal/service"
 	"context"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
@@ -36,13 +36,13 @@ func generateToken(username string, tokenTTL time.Duration, signingKey string) (
 	return tokenString, nil
 }
 
-func (auth *authService) GetOrCreateTokenByCredentials(ctx context.Context, username, providedPassword string) (string, error) {
+func (auth *AuthService) GetOrCreateTokenByCredentials(ctx context.Context, username, providedPassword string) (string, error) {
 
 	user, err := auth.storage.GetUserByUsername(ctx, username)
 	if err != nil {
 		slog.Error("Error getting user by username", slog.String("username", username), slog.String("error", err.Error()))
 
-		return "", fmt.Errorf("%w:%w", autherrors.ErrStorage, err)
+		return "", fmt.Errorf("%w:%w", service.ErrStorage, err)
 	}
 
 	// if user not found create new and return his token
@@ -53,19 +53,19 @@ func (auth *authService) GetOrCreateTokenByCredentials(ctx context.Context, user
 		if err != nil {
 			slog.Error("Error hashing password", slog.String("username", username))
 
-			return "", fmt.Errorf("%w:%w", autherrors.ErrHashing, err)
+			return "", fmt.Errorf("%w:%w", service.ErrHashing, err)
 		}
 
 		user, err = auth.storage.CreateUser(ctx, username, string(hashedPassword))
 		if err != nil {
 			slog.Error("Error creating user", slog.String("username", username), slog.String("error", err.Error()))
-			return "", fmt.Errorf("%w:%w", autherrors.ErrStorage, err)
+			return "", fmt.Errorf("%w:%w", service.ErrStorage, err)
 		}
 
 		token, err := generateToken(user.Username, auth.tokenTTL, auth.signingKey)
 		if err != nil {
 			slog.Error("Error generating token", slog.String("username", username))
-			return "", fmt.Errorf("%w:%w", autherrors.ErrGenerateToken, err)
+			return "", fmt.Errorf("%w:%w", service.ErrGenerateToken, err)
 		}
 
 		slog.Info("Successfully generated token and create user", slog.String("username", username))
@@ -77,7 +77,7 @@ func (auth *authService) GetOrCreateTokenByCredentials(ctx context.Context, user
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(providedPassword))
 	if err != nil {
-		return "", fmt.Errorf("%w:%w", autherrors.ErrInvalidPassword, err)
+		return "", fmt.Errorf("%w:%w", service.ErrInvalidPassword, err)
 	}
 
 	slog.Info("Successfully generated token", slog.String("username", username))

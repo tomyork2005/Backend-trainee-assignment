@@ -1,9 +1,8 @@
 package transport
 
 import (
-	"Backend-trainee-assignment/internal/auth/autherrors"
 	transportModel "Backend-trainee-assignment/internal/model/transport"
-	"Backend-trainee-assignment/internal/service/serverrors"
+	"Backend-trainee-assignment/internal/service"
 	"context"
 	"encoding/json"
 	"errors"
@@ -94,7 +93,7 @@ func (h *Handler) PostAuthEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.authService.GetOrCreateTokenByCredentials(r.Context(), authRequest.Username, authRequest.Password)
 	if err != nil {
-		if errors.Is(err, autherrors.ErrInvalidPassword) {
+		if errors.Is(err, service.ErrInvalidPassword) {
 
 			w.WriteHeader(http.StatusUnauthorized)
 			_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
@@ -164,7 +163,7 @@ func (h *Handler) PostSendCoin(w http.ResponseWriter, r *http.Request) {
 
 	err = h.shopService.SendCoins(r.Context(), coinRequest.ToUser, coinRequest.Amount)
 	if err != nil {
-		if errors.Is(serverrors.ErrBalanceNotEnough, err) {
+		if errors.Is(service.ErrBalanceNotEnough, err) {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
@@ -174,7 +173,7 @@ func (h *Handler) PostSendCoin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if errors.Is(serverrors.ErrInvalidTarget, err) {
+		if errors.Is(service.ErrInvalidTarget, err) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
 			_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
@@ -202,7 +201,7 @@ func (h *Handler) GetBuyItem(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 
-		if errors.Is(serverrors.ErrMerchDontExist, err) {
+		if errors.Is(service.ErrMerchDontExist, err) {
 			w.WriteHeader(http.StatusBadRequest)
 			_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
 				Errors: "Merch dont exist",
@@ -210,7 +209,7 @@ func (h *Handler) GetBuyItem(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if errors.Is(serverrors.ErrBalanceNotEnough, err) {
+		if errors.Is(service.ErrBalanceNotEnough, err) {
 			w.WriteHeader(http.StatusBadRequest)
 			_ = json.NewEncoder(w).Encode(transportModel.ErrorResponse{
 				Errors: "User balance not enough",
