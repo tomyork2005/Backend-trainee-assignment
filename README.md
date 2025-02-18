@@ -1,3 +1,4 @@
+Task --> https://github.com/avito-tech/tech-internship/blob/main/Tech%20Internships/Backend/Backend-trainee-assignment-winter-2025/Backend-trainee-assignment-winter-2025.md 
 Логика реализовано полностью. Все остальное in progress...
 
 ### TODO
