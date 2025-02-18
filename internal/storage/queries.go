@@ -3,24 +3,24 @@ package storage
 // auth
 const (
 	queryCreateUser = `
-	INSERT INTO users(username, password_hash) VALUES ($1, $2) RETURNING username, password_hash, coins, created_at, updated_at
+	INSERT INTO users(username, password_hash) VALUES ($1, $2) RETURNING username, password_hash, coins
 `
 )
 
 // info
 const (
 	queryGetCoinTransactionsByUsername = `
-	SELECT id, from_user_id, to_user_id, amount, created_at
+	SELECT id, from_user_id, to_user_id, amount
 	FROM coin_transactions 
 	WHERE from_user_id = $1 or to_user_id = $1
 	`
 	queryGetPurchasesByUsername = `
-	SELECT id, username, merchname, quantity, created_at
+	SELECT id, username, merchname, quantity
 	FROM purchases
 	where username = $1
 	`
 	queryGetUserByUsername = `
-	SELECT username, password_hash, coins, created_at, updated_at
+	SELECT username, password_hash, coins
 	FROM users WHERE username = $1
 	`
 )

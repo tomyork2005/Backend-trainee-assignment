@@ -46,8 +46,6 @@ func (s *Storage) GetUserByUsername(ctx context.Context, username string) (*serv
 		&user.Username,
 		&user.Password,
 		&user.Balance,
-		&user.CreatedAt,
-		&user.UpdatedAt,
 	)
 
 	if err != nil {
@@ -77,7 +75,6 @@ func (s *Storage) GetPurchasesByUsername(ctx context.Context, username string) (
 			&purchases.User,
 			&purchases.Merch,
 			&purchases.Quantity,
-			&purchases.CreatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -104,7 +101,6 @@ func (s *Storage) GetCoinTransactionsByUsername(ctx context.Context, username st
 			&coinTransaction.FromUser,
 			&coinTransaction.ToUser,
 			&coinTransaction.Amount,
-			&coinTransaction.CreatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -164,8 +160,6 @@ func (s *Storage) CreateUser(ctx context.Context, username, password string) (*s
 		&user.Username,
 		&user.Password,
 		&user.Balance,
-		&user.CreatedAt,
-		&user.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
